@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "205375342353",
+    "project_id": "arte-de-colorir-cabelos",
+    "storage_bucket": "arte-de-colorir-cabelos.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:205375342353:android:50e58a16f36e2a4a1d2eb0",
+        "android_client_info": {
+          "package_name": "com.example.arte_de_colorir_cabelos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOoY9TUaQc2555wIvQ3x7uSSNrLrij9ZI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

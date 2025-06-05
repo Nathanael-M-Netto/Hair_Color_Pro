@@ -1,0 +1,70 @@
+# Miscellaneous
+*.class
+*.lock
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+
+# Flutter/Dart
+.metadata
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+build/
+# Especificamente para algumas configurações do IDE
+.idea/
+*.iml
+*.externalNativeBuild
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
+# Configurações do VS Code
+.vscode/
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Runner/GeneratedPluginRegistrant.h
+ios/Runner/GeneratedPluginRegistrant.m
+
+# macOS
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Web
+web/flutter_bootstrap.js
+web/main.dart.js
+
+# Sensível (NÃO adicione ao git)
+# Adiciona o arquivo real de opções do Firebase ao .gitignore
+# O arquivo firebase_options.dart.example (com placeholders) DEVE ser versionado.
+lib/firebase_options.dart
+
+# Se você tiver outros arquivos com chaves secretas ou dados sensíveis, adicione-os aqui.
+# Por exemplo:
+# secrets.json
+# .env
+
+# Pub
+# A Flutter team recomenda versionar o pubspec.lock para garantir builds consistentes.
+# Se você tem um motivo específico para ignorá-lo, descomente a linha abaixo.
+# pubspec.lock
+
+# Build artifacts
+app-*
+# Especificamente para Android
+android/key.properties
+android/local.properties
+android/.gradle
+# A pasta build do Android já está coberta pelo build/ geral.
+
+# Captures (se você os tiver)
+captures/

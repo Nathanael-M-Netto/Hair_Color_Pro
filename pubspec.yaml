@@ -1,0 +1,45 @@
+name: arte_de_colorir_cabelos # Certifique-se que este é o nome do seu projeto
+description: "Um novo projeto Flutter para auxiliar na coloração de cabelos."
+publish_to: 'none' # Remove this line if you want to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0' # Ajustado para corresponder ao seu ambiente
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase - Essenciais (sem Firestore e Storage)
+  firebase_core: ^2.32.0 # Verifique sempre a versão mais recente em pub.dev
+  firebase_auth: ^4.20.0 # Para autenticação
+
+  image_picker: ^1.1.2
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Para usar assets (imagens, fontes, etc.) no seu aplicativo,
+  # adicione uma seção de assets como esta:
+  assets:
+    # Adiciona o diretório de imagens. Qualquer imagem dentro de assets/images/
+    # estará disponível para o aplicativo.
+    - assets/images/
+    # Se você quisesse adicionar uma imagem específica, faria assim:
+    # - assets/images/nome_especifico_da_imagem.png
+
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
