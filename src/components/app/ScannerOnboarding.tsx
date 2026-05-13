@@ -82,7 +82,7 @@ export function ScannerOnboarding() {
       <button
         onClick={dismiss}
         aria-label="Pular tutorial"
-        className="absolute right-5 top-[max(1.25rem,env(safe-area-inset-top))] grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition active:scale-90 hover:bg-white/5 hover:text-foreground"
+        className="absolute right-5 top-[max(1.25rem,env(safe-area-inset-top))] grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition active:scale-90 hover:bg-foreground/5 hover:text-foreground"
       >
         <X className="h-5 w-5" aria-hidden="true" />
       </button>
@@ -128,7 +128,7 @@ export function ScannerOnboarding() {
             onClick={() => setSlide(i)}
             aria-label={`Ir para o slide ${i + 1}`}
             className={`h-1.5 rounded-full transition-all ${
-              i === slide ? 'w-6 bg-primary' : 'w-1.5 bg-white/20 hover:bg-white/30'
+              i === slide ? 'w-6 bg-primary' : 'w-1.5 bg-foreground/20 hover:bg-foreground/30'
             }`}
           />
         ))}

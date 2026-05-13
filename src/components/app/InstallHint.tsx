@@ -141,7 +141,7 @@ function BannerShell({
       <button
         onClick={onDismiss}
         aria-label="Dispensar banner de instalação"
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted-foreground transition active:scale-90 hover:bg-white/5 hover:text-foreground"
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted-foreground transition active:scale-90 hover:bg-foreground/5 hover:text-foreground"
       >
         <X className="h-3.5 w-3.5" aria-hidden="true" />
       </button>

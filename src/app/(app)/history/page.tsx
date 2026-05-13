@@ -93,7 +93,7 @@ export default async function HistoryPage() {
                   >
                     <GlassCard
                       padding="md"
-                      className="flex items-center gap-3 hover:bg-white/[0.02]"
+                      className="flex items-center gap-3 hover:bg-foreground/[0.04]"
                     >
                       {/* Swatch redondo com a cor REAL detectada pela análise */}
                       <div

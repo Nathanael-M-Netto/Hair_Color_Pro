@@ -18,8 +18,8 @@ export default function AppLoading() {
       <div className="pt-safe-or-6 relative z-10 mx-auto max-w-lg px-5 pb-28">
         {/* Header placeholder */}
         <div className="mb-5 pt-2 space-y-1.5">
-          <div className="h-4 w-32 rounded bg-white/[0.06] animate-pulse" />
-          <div className="h-3 w-44 rounded bg-white/[0.04] animate-pulse" />
+          <div className="h-4 w-32 rounded bg-foreground/[0.08] animate-pulse" />
+          <div className="h-3 w-44 rounded bg-foreground/[0.06] animate-pulse" />
         </div>
 
         {/* Conteúdo placeholder — 3 cards skeleton */}

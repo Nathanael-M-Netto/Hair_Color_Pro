@@ -60,7 +60,7 @@ export function CaptureTipsChips() {
           <button
             type="button"
             aria-label="Por que luz natural? Toque para entender"
-            className="glass-subtle inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] text-muted-foreground transition active:scale-95 hover:bg-white/[0.06] hover:text-foreground"
+            className="glass-subtle inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] text-muted-foreground transition active:scale-95 hover:bg-foreground/[0.08] hover:text-foreground"
           >
             <Sun className="h-3 w-3" aria-hidden="true" />
             Luz natural
@@ -107,7 +107,7 @@ export function CaptureTipsChips() {
           <button
             type="button"
             aria-label="Por que 30 cm de distância? Toque para entender"
-            className="glass-subtle inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] text-muted-foreground transition active:scale-95 hover:bg-white/[0.06] hover:text-foreground"
+            className="glass-subtle inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] text-muted-foreground transition active:scale-95 hover:bg-foreground/[0.08] hover:text-foreground"
           >
             <Ruler className="h-3 w-3" aria-hidden="true" />
             30 cm

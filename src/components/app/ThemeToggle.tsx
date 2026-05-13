@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Smartphone, Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -22,7 +22,7 @@ export function ThemeToggle() {
   useEffect(() => setMounted(true), []);
 
   const options = [
-    { key: 'system', label: 'Sistema', Icon: Monitor },
+    { key: 'system', label: 'Sistema', Icon: Smartphone },
     { key: 'light', label: 'Claro', Icon: Sun },
     { key: 'dark', label: 'Escuro', Icon: Moon },
   ] as const;
@@ -45,7 +45,7 @@ export function ThemeToggle() {
                 'flex flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 transition active:scale-95',
                 active
                   ? 'bg-primary/15 text-foreground ring-1 ring-primary/30'
-                  : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground/80',
+                  : 'text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground/80',
               )}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />

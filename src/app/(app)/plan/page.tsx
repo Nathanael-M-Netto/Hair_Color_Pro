@@ -100,7 +100,7 @@ export default function PlanPage() {
           <Link
             href="/result"
             aria-label="Voltar pro resultado"
-            className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition active:scale-90 hover:bg-white/5 hover:text-foreground"
+            className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition active:scale-90 hover:bg-foreground/5 hover:text-foreground"
           >
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Link>

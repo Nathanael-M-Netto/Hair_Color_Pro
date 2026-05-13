@@ -28,7 +28,7 @@ const buttonVariants = cva(
         destructive:
           'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
         outline:
-          'border border-input bg-white/[0.02] text-foreground shadow-sm hover:bg-secondary/60 hover:text-foreground hover:border-foreground/20',
+          'border border-input bg-foreground/[0.04] text-foreground shadow-sm hover:bg-secondary/60 hover:text-foreground hover:border-foreground/20',
         secondary:
           'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
         ghost:
@@ -36,7 +36,7 @@ const buttonVariants = cva(
         link: 'text-primary underline-offset-4 hover:underline active:scale-100',
         /** Superfície glass translúcida — ideal sobre Aurora e fundos ricos */
         glass:
-          'glass-subtle text-foreground hover:bg-white/5 active:bg-white/10',
+          'glass-subtle text-foreground hover:bg-foreground/5 active:bg-foreground/10',
       },
       size: {
         default: 'h-9 px-4 py-2',

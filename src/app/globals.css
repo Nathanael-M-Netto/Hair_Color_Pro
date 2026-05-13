@@ -23,37 +23,42 @@
  * ====================================================================== */
 
 @theme {
-  /* ---------- Base — carvão quente (DARK default) ---------- */
-  --color-background: 20 12% 5%;
-  --color-foreground: 30 12% 96%;
-  --color-card: 24 8% 9% / 0.65;
-  --color-card-foreground: 30 12% 96%;
-  --color-popover: 24 8% 8% / 0.85;
-  --color-popover-foreground: 30 12% 96%;
+  /* ---------- Base — carvão quente (DARK default) ----------
+   * IMPORTANTE: valores devem ser CSS-válidos (`hsl(...)`, não só HSL
+   * components soltos). Tailwind v4 emite `background-color: var(--color-X)`
+   * literal — se o token for `20 12% 5%`, a regra fica inválida e o utility
+   * `bg-background` não pinta. Por isso TODO token de cor vai com `hsl()`.
+   */
+  --color-background: hsl(20 12% 5%);
+  --color-foreground: hsl(30 12% 96%);
+  --color-card: hsl(24 8% 9% / 0.65);
+  --color-card-foreground: hsl(30 12% 96%);
+  --color-popover: hsl(24 8% 8% / 0.85);
+  --color-popover-foreground: hsl(30 12% 96%);
 
   /* ---------- Marca — cobre único ---------- */
-  --color-primary: 24 55% 52%;
-  --color-primary-foreground: 30 15% 98%;
-  --color-primary-muted: 24 35% 35%;
+  --color-primary: hsl(24 55% 52%);
+  --color-primary-foreground: hsl(30 15% 98%);
+  --color-primary-muted: hsl(24 35% 35%);
 
   /* ---------- Suporte — escala neutra quente (DARK) ---------- */
-  --color-muted: 24 6% 14%;
-  --color-muted-foreground: 30 6% 62%;
-  --color-secondary: 24 6% 18%;
-  --color-secondary-foreground: 30 12% 96%;
-  --color-accent: 30 18% 75%;
-  --color-accent-foreground: 24 10% 8%;
+  --color-muted: hsl(24 6% 14%);
+  --color-muted-foreground: hsl(30 6% 62%);
+  --color-secondary: hsl(24 6% 18%);
+  --color-secondary-foreground: hsl(30 12% 96%);
+  --color-accent: hsl(30 18% 75%);
+  --color-accent-foreground: hsl(24 10% 8%);
 
   /* ---------- Border / ring (DARK) ---------- */
-  --color-border: 30 10% 100% / 0.06;
-  --color-input: 30 10% 100% / 0.08;
-  --color-ring: 24 55% 52%;
+  --color-border: hsl(30 10% 100% / 0.06);
+  --color-input: hsl(30 10% 100% / 0.08);
+  --color-ring: hsl(24 55% 52%);
 
   /* ---------- Estados ---------- */
-  --color-destructive: 8 65% 52%;
-  --color-destructive-foreground: 30 15% 98%;
-  --color-success: 140 30% 45%;
-  --color-warning: 35 75% 55%;
+  --color-destructive: hsl(8 65% 52%);
+  --color-destructive-foreground: hsl(30 15% 98%);
+  --color-success: hsl(140 30% 45%);
+  --color-warning: hsl(35 75% 55%);
 
   /* ---------- Raio ---------- */
   --radius-sm: 0.375rem;
@@ -67,13 +72,18 @@
   --glass-border: rgba(255, 245, 235, 0.07);
   --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   --glass-inset: inset 0 1px 0 rgba(255, 245, 235, 0.05);
+  /* Fundos das superfícies glass — variam com tema (em light, escuro sobre claro) */
+  --glass-strong-bg: hsl(24 8% 7% / 0.82);
+  --glass-subtle-bg: hsl(30 10% 100% / 0.035);
+  --glass-no-bg-fallback: hsl(24 8% 11%);
+  --glass-no-subtle-fallback: hsl(24 8% 13%);
 
   /* ---------- Cor literal da status bar (hex absoluto) ---------- *
    * Replicada em:
    *   1. manifest.webmanifest "theme_color" e "background_color"
    *   2. src/app/layout.tsx   viewport.themeColor + APPLE_SPLASH_LINKS
-   *   3. layout.tsx           div "status bar fuse" (uso `bg-statusbar`)
-   * Mudar pelas três pontas ao trocar paleta. */
+   *   3. layout.tsx           div "status bar fuse"
+   * Muda automaticamente em light mode via override em `:root.light`. */
   --color-statusbar: #0e0c0b;
 
   /* ---------- Fontes ---------- */
@@ -85,28 +95,35 @@
 /* ── LIGHT MODE — overrides quando next-themes adiciona class="light" ──
  * Paleta clara complementar: branco quente, cobre como acento, glass com
  * sombra sutil. Mantém identidade cobre/quente da marca.
+ * Todos os tokens em `hsl(...)` válido — mesma regra do @theme.
  */
 :root.light {
-  --color-background: 30 25% 97%;
-  --color-foreground: 24 12% 12%;
-  --color-card: 30 20% 99% / 0.75;
-  --color-card-foreground: 24 12% 12%;
-  --color-popover: 30 20% 98% / 0.95;
-  --color-popover-foreground: 24 12% 12%;
+  --color-background: hsl(30 25% 97%);
+  --color-foreground: hsl(24 12% 12%);
+  --color-card: hsl(30 20% 99% / 0.75);
+  --color-card-foreground: hsl(24 12% 12%);
+  --color-popover: hsl(30 20% 98% / 0.95);
+  --color-popover-foreground: hsl(24 12% 12%);
 
-  --color-muted: 30 12% 92%;
-  --color-muted-foreground: 24 8% 40%;
-  --color-secondary: 30 15% 90%;
-  --color-secondary-foreground: 24 12% 18%;
-  --color-accent: 24 35% 50%;
-  --color-accent-foreground: 30 25% 97%;
+  --color-muted: hsl(30 12% 92%);
+  --color-muted-foreground: hsl(24 8% 40%);
+  --color-secondary: hsl(30 15% 90%);
+  --color-secondary-foreground: hsl(24 12% 18%);
+  --color-accent: hsl(24 35% 50%);
+  --color-accent-foreground: hsl(30 25% 97%);
 
-  --color-border: 24 10% 0% / 0.1;
-  --color-input: 24 10% 0% / 0.06;
+  --color-border: hsl(24 10% 0% / 0.1);
+  --color-input: hsl(24 10% 0% / 0.06);
 
   --glass-border: rgba(60, 40, 30, 0.08);
   --glass-shadow: 0 8px 24px rgba(60, 40, 30, 0.12);
   --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  /* Em light: glass-strong fica branco quente bem opaco (modais legíveis);
+     glass-subtle fica escuro bem transparente (sutil sobre fundo claro). */
+  --glass-strong-bg: hsl(30 25% 99% / 0.88);
+  --glass-subtle-bg: hsl(24 12% 12% / 0.04);
+  --glass-no-bg-fallback: hsl(30 20% 96%);
+  --glass-no-subtle-fallback: hsl(30 15% 93%);
 
   /* Status bar branca quente quando em light mode */
   --color-statusbar: #faf6f1;
@@ -120,23 +137,26 @@
   *,
   *::before,
   *::after {
-    border-color: hsl(var(--color-border));
+    border-color: var(--color-border);
   }
 
   html {
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
     text-size-adjust: 100%;
-    /* MESMO HEX do theme_color do manifest — pintado antes do CSS carregar
-       (evita flash branco entre status bar e conteúdo no boot do PWA) */
-    background-color: #0e0c0b;
+    /* Status bar fuse: cor que MUDA com o tema (light/dark). Pintada antes
+       do CSS principal carregar — evita flash branco entre o system status
+       bar e o conteúdo no boot do PWA. Em light, fica branco quente; em
+       dark, carvão. */
+    background-color: var(--color-statusbar);
     /* Trava overscroll no html — sem rubber-band azul/branco no iOS */
     overscroll-behavior: none;
   }
 
   body {
-    background-color: #0e0c0b; /* match exato com theme_color do manifest */
-    color: hsl(var(--color-foreground));
+    /* `bg-background` é aplicado via className do RootLayout — usa o token
+       que muda com o tema. Não duplicamos aqui pra não engessar a cor. */
+    color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
     text-rendering: optimizeLegibility;
@@ -284,41 +304,42 @@
     min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 
-  /* Superfície glass padrão — cards, painéis */
+  /* Superfície glass padrão — cards, painéis. Usa `--color-card` (que já
+     tem alpha embutido no token) e muda automaticamente com o tema. */
   .glass {
-    background: hsl(var(--color-card));
+    background: var(--color-card);
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow), var(--glass-inset);
   }
 
-  /* Superfície glass mais opaca — modais, drawers */
+  /* Superfície glass mais opaca — modais, drawers. Usa var temática. */
   .glass-strong {
-    background: hsl(24 8% 7% / 0.82);
+    background: var(--glass-strong-bg);
     backdrop-filter: blur(28px) saturate(150%);
     -webkit-backdrop-filter: blur(28px) saturate(150%);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow), var(--glass-inset);
   }
 
-  /* Superfície glass sutil — chips, badges, inputs ghost */
+  /* Superfície glass sutil — chips, badges, inputs ghost. Usa var temática. */
   .glass-subtle {
-    background: hsl(30 10% 100% / 0.035);
+    background: var(--glass-subtle-bg);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
   }
 
-  /* Fallback para dispositivos sem backdrop-filter */
+  /* Fallback para dispositivos sem backdrop-filter (vars temáticas) */
   html.no-glass .glass,
   html.no-glass .glass-strong {
-    background: hsl(24 8% 11%);
+    background: var(--glass-no-bg-fallback);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
   html.no-glass .glass-subtle {
-    background: hsl(24 8% 13%);
+    background: var(--glass-no-subtle-fallback);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
