@@ -54,17 +54,17 @@ export function CaptureTipsChips() {
         </PopoverContent>
       </Popover>
 
-      {/* Luz natural */}
+      {/* Luz natural — mesmo estilo destacado das outras chips */}
       <Popover>
         <PopoverTrigger asChild>
           <button
             type="button"
             aria-label="Por que luz natural? Toque para entender"
-            className="glass-subtle inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] text-muted-foreground transition active:scale-95 hover:bg-foreground/[0.08] hover:text-foreground"
+            className="glass-subtle inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] text-foreground transition active:scale-95 hover:bg-primary/15"
           >
-            <Sun className="h-3 w-3" aria-hidden="true" />
+            <Sun className="h-3 w-3 text-primary" aria-hidden="true" />
             Luz natural
-            <Info className="h-2.5 w-2.5 text-muted-foreground/50" aria-hidden="true" />
+            <Info className="h-2.5 w-2.5 text-muted-foreground/60" aria-hidden="true" />
           </button>
         </PopoverTrigger>
         <PopoverContent side="top" sideOffset={8} className="w-72">
@@ -101,17 +101,17 @@ export function CaptureTipsChips() {
         </PopoverContent>
       </Popover>
 
-      {/* 30 cm */}
+      {/* 30 cm — mesmo estilo destacado */}
       <Popover>
         <PopoverTrigger asChild>
           <button
             type="button"
             aria-label="Por que 30 cm de distância? Toque para entender"
-            className="glass-subtle inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] text-muted-foreground transition active:scale-95 hover:bg-foreground/[0.08] hover:text-foreground"
+            className="glass-subtle inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] text-foreground transition active:scale-95 hover:bg-primary/15"
           >
-            <Ruler className="h-3 w-3" aria-hidden="true" />
+            <Ruler className="h-3 w-3 text-primary" aria-hidden="true" />
             30 cm
-            <Info className="h-2.5 w-2.5 text-muted-foreground/50" aria-hidden="true" />
+            <Info className="h-2.5 w-2.5 text-muted-foreground/60" aria-hidden="true" />
           </button>
         </PopoverTrigger>
         <PopoverContent side="top" sideOffset={8} className="w-72">

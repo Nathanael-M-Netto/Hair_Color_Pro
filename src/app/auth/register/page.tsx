@@ -11,6 +11,7 @@ import { getFirebaseAuth } from '@/lib/firebase/client';
 import { registerSchema, type RegisterInput } from '@/lib/schemas/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   Form,
   FormControl,
@@ -128,8 +129,7 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>Senha</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="Mínimo 6 caracteres"
                       autoComplete="new-password"
                       className="h-11"
@@ -148,8 +148,7 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>Confirmar senha</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="Repita"
                       autoComplete="new-password"
                       className="h-11"

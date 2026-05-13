@@ -4,6 +4,7 @@ import { verifySessionCookie } from '@/lib/firebase/admin';
 import { getProfile } from '@/lib/firestore';
 import { ProfileForm } from '@/components/app/ProfileForm';
 import { AuroraStatic } from '@/components/bits/AuroraStatic';
+import { AboutDialog } from '@/components/app/AboutDialog';
 
 /**
  * Tela de perfil do usuário.
@@ -32,15 +33,15 @@ export default async function ProfilePage() {
       <AuroraStatic intensidade={0.2} />
 
       <div className="pt-safe-or-6 relative z-10 mx-auto max-w-lg px-5 pb-28">
-        {/* Header com avatar */}
-        <header className="mb-6 flex items-center gap-3 pt-2">
+        {/* Header com avatar + botão de ajuda no canto direito */}
+        <header className="mb-6 flex items-start gap-3 pt-2">
           <span
             aria-hidden="true"
             className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-primary/15 font-serif text-2xl italic text-primary ring-1 ring-primary/30"
           >
             {initial}
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pt-1">
             <h1 className="truncate text-base font-semibold">
               {profile?.nome ?? 'Seu perfil'}
             </h1>
@@ -51,6 +52,8 @@ export default async function ProfilePage() {
               </p>
             )}
           </div>
+          {/* Sobre o projeto — abre dialog com pitch + como funciona */}
+          <AboutDialog />
         </header>
 
         <ProfileForm

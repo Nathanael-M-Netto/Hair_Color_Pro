@@ -11,6 +11,7 @@ import { getFirebaseAuth } from '@/lib/firebase/client';
 import { loginSchema, type LoginInput } from '@/lib/schemas/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   Form,
   FormControl,
@@ -102,8 +103,7 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel>Senha</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="••••••"
                       autoComplete="current-password"
                       className="h-11"
