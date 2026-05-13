@@ -42,7 +42,14 @@ export type CategoriaPaleta =
   | 'mogno'
   | 'vermelho'
   | 'matte'
-  | 'perola';
+  | 'perola'
+  /**
+   * Cores fantasia / pastéis / vibrantes — azul, rosa, roxo, verde, etc.
+   * Não seguem a nomenclatura tradicional `altura.reflexo` (IDs começam com `F.`).
+   * Geralmente exigem clareamento prévio do cabelo natural (≥ altura 9-10)
+   * pra atingirem saturação visível — aplicados como tonalizante direto.
+   */
+  | 'fantasia';
 
 /** Ação canônica derivada do delta e dos brancos. */
 export type Acao =

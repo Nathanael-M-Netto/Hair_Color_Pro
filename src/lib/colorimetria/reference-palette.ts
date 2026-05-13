@@ -30,6 +30,25 @@ function entry(args: Omit<PaletteEntry, 'id'>): PaletteEntry {
   return { id, ...args };
 }
 
+/**
+ * Helper para entradas FANTASIA com ID arbitrário (`F.AZUL`, `F.PINK` etc).
+ * Cores fantasia não seguem nomenclatura `altura.reflexo` — sempre altura
+ * 12 (precisam de base clareada pra ficar visíveis), reflexos null.
+ */
+function fantasy(
+  id: string,
+  args: Omit<PaletteEntry, 'id' | 'altura' | 'reflexo_primario' | 'reflexo_secundario' | 'categoria'>,
+): PaletteEntry {
+  return {
+    id,
+    altura: 12,
+    reflexo_primario: null,
+    reflexo_secundario: null,
+    categoria: 'fantasia',
+    ...args,
+  };
+}
+
 // ============================================================================
 // 1. NATURAIS (.0) — preto → platinado
 // ============================================================================
@@ -371,6 +390,83 @@ const FUNDAMENTAIS: ReadonlyArray<PaletteEntry> = [
 ];
 
 // ============================================================================
+// 9. FANTASIAS — pastéis e vibrantes (azul, rosa, roxo, verde, etc.)
+// ============================================================================
+// Cores que NÃO existem em coloração natural — exigem clareamento prévio
+// do cabelo (altura ≥ 9, idealmente 10-11) pra ficarem visíveis. Aplicadas
+// como tonalizante direto (sem oxidante, ou com 10 vol no máximo).
+//
+// IDs começam com `F.` pra distinguir do esquema `altura.reflexo` natural.
+// Coordenadas Lab estimadas via conversão sRGB→Lab dos hex referência;
+// calibração de produção exige medição em colorímetro de amostras físicas.
+//
+const FANTASIAS: ReadonlyArray<PaletteEntry> = [
+  // ── PASTÉIS — L alto, croma baixa, look romântico/jovem ──────────────
+  fantasy('F.LAV', {
+    nome: 'Lavanda Pastel',
+    subtom: 'frio',
+    hex: '#C5B8E0',
+    lab: { L: 76, a: 8, b: -15 },
+  }),
+  fantasy('F.ROSA', {
+    nome: 'Rosa Quartzo',
+    subtom: 'quente',
+    hex: '#F0C5C8',
+    lab: { L: 82, a: 15, b: 8 },
+  }),
+  fantasy('F.AZU', {
+    nome: 'Azul Bebê',
+    subtom: 'frio',
+    hex: '#B0D4E8',
+    lab: { L: 82, a: -5, b: -15 },
+  }),
+  fantasy('F.MEN', {
+    nome: 'Menta',
+    subtom: 'frio',
+    hex: '#B5E0D0',
+    lab: { L: 85, a: -15, b: 5 },
+  }),
+  fantasy('F.PER', {
+    nome: 'Pêssego Pastel',
+    subtom: 'quente',
+    hex: '#F2C8A0',
+    lab: { L: 82, a: 10, b: 22 },
+  }),
+
+  // ── VIBRANTES — alta saturação, statement looks ──────────────────────
+  fantasy('F.PINK', {
+    nome: 'Magenta Vibrante',
+    subtom: 'quente',
+    hex: '#E84A8A',
+    lab: { L: 58, a: 55, b: -5 },
+  }),
+  fantasy('F.RUB', {
+    nome: 'Vermelho Rubi',
+    subtom: 'quente',
+    hex: '#B0252F',
+    lab: { L: 38, a: 55, b: 30 },
+  }),
+  fantasy('F.VIO', {
+    nome: 'Violeta',
+    subtom: 'frio',
+    hex: '#6B2D9C',
+    lab: { L: 32, a: 42, b: -45 },
+  }),
+  fantasy('F.ROY', {
+    nome: 'Azul Royal',
+    subtom: 'frio',
+    hex: '#2E4FCF',
+    lab: { L: 40, a: 15, b: -55 },
+  }),
+  fantasy('F.ESM', {
+    nome: 'Verde Esmeralda',
+    subtom: 'frio',
+    hex: '#2E8B57',
+    lab: { L: 50, a: -40, b: 15 },
+  }),
+];
+
+// ============================================================================
 // EXPORT — paleta completa imutável
 // ============================================================================
 
@@ -383,6 +479,7 @@ export const REFERENCE_PALETTE: ReadonlyArray<PaletteEntry> = [
   ...MATTES,
   ...PEROLAS,
   ...FUNDAMENTAIS,
+  ...FANTASIAS,
 ];
 
 /**

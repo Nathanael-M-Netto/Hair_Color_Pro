@@ -38,6 +38,9 @@ const CATEGORIAS: Array<{ key: CategoriaPaleta; label: string }> = [
   { key: 'vermelho', label: 'Vermelhos' },
   { key: 'matte', label: 'Matte' },
   { key: 'perola', label: 'Pérola' },
+  // Cores fantasia (azul, rosa, roxo, verde, lavanda, etc.) — não seguem
+  // nomenclatura tradicional; exigem clareamento prévio do cabelo.
+  { key: 'fantasia', label: 'Fantasia' },
 ];
 
 interface TargetTonePickerProps {

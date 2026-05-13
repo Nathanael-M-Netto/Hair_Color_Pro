@@ -118,9 +118,24 @@ export function calcularPlano(input: ColoringPlanInput): ColoringPlan {
   const deltaAltura = target.altura - base.altura;
   const mudouReflexo = base.reflexo_primario !== target.reflexo_primario;
   const mudouSubtom = input.subtomAtual !== target.subtom;
+  const isFantasia = target.categoria === 'fantasia';
 
-  const acao = derivarAcao(deltaAltura, mudouReflexo, input.brancosPct);
-  const volumagemRecomendada = derivarVolumagem(deltaAltura);
+  // Caminho da ação:
+  //   - Fantasia sobre cabelo escuro (base < 9) → SEMPRE descolorir + pigmentar
+  //   - Fantasia sobre base clara (base ≥ 9) → tom_sobre_tom (só tonalizante)
+  //   - Demais cores → regra normal por delta
+  let acao: Acao;
+  if (isFantasia) {
+    acao = isFantasiaSobreEscuro(base, target) ? 'descolorir_e_pigmentar' : 'tom_sobre_tom';
+  } else {
+    acao = derivarAcao(deltaAltura, mudouReflexo, input.brancosPct);
+  }
+
+  // Volumagem:
+  //   - Fantasia → SEMPRE 10 vol (tonalizante deposita pigmento, não levanta nível)
+  //   - Demais → regra normal por delta
+  const volumagemRecomendada: Volumagem = isFantasia ? 10 : derivarVolumagem(deltaAltura);
+
   const tempoPausaMin = TEMPO_POR_ACAO[acao];
   const avisos = derivarAvisos(deltaAltura, input.brancosPct, mudouSubtom, base, target);
   const resumo = montarResumo(deltaAltura, mudouReflexo, base, target);
@@ -142,6 +157,15 @@ export function calcularPlano(input: ColoringPlanInput): ColoringPlan {
 // ============================================================================
 // Helpers
 // ============================================================================
+
+/**
+ * Cores fantasia (categoria 'fantasia') sempre exigem cabelo clareado.
+ * Independente do delta tradicional, marca como `descolorir_e_pigmentar`
+ * quando a base está abaixo da altura 9 (ainda tem pigmento natural visível).
+ */
+function isFantasiaSobreEscuro(base: PaletteEntry, target: PaletteEntry): boolean {
+  return target.categoria === 'fantasia' && base.altura < 9;
+}
 
 function derivarAcao(deltaAltura: number, mudouReflexo: boolean, _brancosPct: number): Acao {
   // Mesmo nível, mesmo reflexo → só fixa cor
@@ -178,6 +202,56 @@ function derivarAvisos(
   target: PaletteEntry,
 ): ColoringPlanWarning[] {
   const avisos: ColoringPlanWarning[] = [];
+
+  // ── Cores fantasia: regras especiais (têm prioridade sobre as outras) ──
+  if (target.categoria === 'fantasia') {
+    if (base.altura < 9) {
+      avisos.push({
+        severidade: 'critico',
+        codigo: 'FANTASIA_PRECISA_BASE_CLARA',
+        mensagem: `Cores fantasia (${target.nome}) exigem cabelo previamente clareado pra altura 9-11. Sua base atual (altura ${base.altura}) precisa passar por descoloração antes — pó descolorante + OX 20-30 vol, em uma ou múltiplas etapas conforme a saúde do fio.`,
+      });
+    }
+
+    // Aviso geral pra qualquer fantasia
+    avisos.push({
+      severidade: 'atencao',
+      codigo: 'FANTASIA_USA_TONALIZANTE',
+      mensagem: `${target.nome} é aplicada como TONALIZANTE direto (sem oxidante alto). Use OX 10 vol no máximo ou aplique direto no cabelo úmido. Pausa de 20-30 minutos, lavar com água fria.`,
+    });
+
+    // Pastéis precisam de base ainda mais clara
+    const labL = target.lab.L;
+    if (labL >= 70) {
+      avisos.push({
+        severidade: 'info',
+        codigo: 'FANTASIA_PASTEL',
+        mensagem: `Pastéis exigem base 10-11 (loiro muito claro/claríssimo) pra ficarem visíveis. Em base mais escura, o pigmento fica abafado ou invisível.`,
+      });
+    }
+
+    // Vermelhos/azuis vibrantes desbotam mais rápido
+    if (target.id === 'F.RUB' || target.id === 'F.PINK' || target.id === 'F.ROY' || target.id === 'F.ESM') {
+      avisos.push({
+        severidade: 'info',
+        codigo: 'FANTASIA_DESBOTA_RAPIDO',
+        mensagem: `Cores vibrantes (especialmente vermelho e azul) desbotam em 15-30 dias. Oriente o cliente sobre manutenção com shampoo e máscara matizadora da mesma família.`,
+      });
+    }
+
+    // Brancos altos viram um BÔNUS em fantasia (não precisa pré-pigmentar, já é base clara)
+    if (brancosPct >= 50) {
+      avisos.push({
+        severidade: 'info',
+        codigo: 'FANTASIA_BRANCOS_BENEFICO',
+        mensagem: `Com ${brancosPct}% de brancos, o cabelo já tem base clara — pode pular ou abreviar a descoloração. Cabelos grisalhos são ideais pra fantasia.`,
+      });
+    }
+
+    return avisos; // Pular regras tradicionais — fantasia tem lógica própria
+  }
+
+  // ── Demais cores: regras tradicionais ──
 
   // Clareamento extremo (≥4 níveis)
   if (deltaAltura >= 4) {
@@ -245,6 +319,14 @@ function montarResumo(
   base: PaletteEntry,
   target: PaletteEntry,
 ): string {
+  // Fantasia tem narrativa própria — não cabe em "clarear X níveis"
+  if (target.categoria === 'fantasia') {
+    if (base.altura < 9) {
+      return `Descolorir até base clara e pigmentar com ${target.nome}.`;
+    }
+    return `Aplicar tonalizante ${target.nome} sobre a base clareada.`;
+  }
+
   if (deltaAltura === 0 && !mudouReflexo) {
     return `Refresco de cor — fixar o ${base.nome} atual.`;
   }
