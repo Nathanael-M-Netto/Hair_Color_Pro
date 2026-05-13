@@ -72,5 +72,14 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "@firebase/util",
+      "esbuild",
+      "protobufjs",
+      "@parcel/watcher"
+    ]
   }
 }
