@@ -2,21 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import {
-  ArrowLeft,
-  Sparkles,
-  Camera,
-  AlertCircle,
-  Loader2,
-  Check,
-  TriangleAlert,
-} from 'lucide-react';
+import { ArrowLeft, Sparkles, Camera, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { AuroraStatic } from '@/components/bits/AuroraStatic';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TargetTonePicker } from '@/components/app/TargetTonePicker';
+import {
+  MetricInfo,
+  POPOVER_BRANCOS,
+  POPOVER_CONFIANCA,
+  POPOVER_SUBTOM,
+} from '@/components/app/MetricInfo';
 
 /**
  * Tela de resultado da análise de cor.
@@ -197,9 +195,25 @@ function ResultView({ data }: { data: ResultData }) {
 
           {/* Métricas em chips */}
           <div className="mt-5 grid grid-cols-3 gap-2">
-            <Metric label="Subtom" value={traduzirSubtom(analysis.subtom)} />
-            <Metric label="Brancos" value={`${analysis.brancosPct}%`} />
-            <Metric label="Confiança" value={`${confPct}%`} severity={confPct < 50 ? 'critico' : confPct < 75 ? 'atencao' : 'ok'} />
+            <MetricInfo
+              label="Subtom"
+              value={traduzirSubtom(analysis.subtom)}
+              popoverTitle={POPOVER_SUBTOM.title}
+              popoverContent={POPOVER_SUBTOM.content}
+            />
+            <MetricInfo
+              label="Brancos"
+              value={`${analysis.brancosPct}%`}
+              popoverTitle={POPOVER_BRANCOS.title}
+              popoverContent={POPOVER_BRANCOS.content}
+            />
+            <MetricInfo
+              label="Confiança"
+              value={`${confPct}%`}
+              severity={confPct < 50 ? 'critico' : confPct < 75 ? 'atencao' : 'ok'}
+              popoverTitle={POPOVER_CONFIANCA.title}
+              popoverContent={POPOVER_CONFIANCA.content}
+            />
           </div>
         </GlassCard>
 
@@ -266,37 +280,6 @@ function ResultView({ data }: { data: ResultData }) {
 // ============================================================================
 // Subcomponentes
 // ============================================================================
-
-function Metric({
-  label,
-  value,
-  severity = 'ok',
-}: {
-  label: string;
-  value: string;
-  severity?: 'ok' | 'atencao' | 'critico';
-}) {
-  const iconColor =
-    severity === 'critico'
-      ? 'text-destructive'
-      : severity === 'atencao'
-        ? 'text-warning'
-        : 'text-primary';
-
-  const Icon = severity === 'critico' ? AlertCircle : severity === 'atencao' ? TriangleAlert : Check;
-
-  return (
-    <div className="glass-subtle rounded-xl p-2.5 text-center">
-      <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-        {label}
-      </p>
-      <div className="mt-1 flex items-center justify-center gap-1">
-        <Icon className={`h-3 w-3 ${iconColor}`} aria-hidden="true" />
-        <span className="text-xs font-medium capitalize">{value}</span>
-      </div>
-    </div>
-  );
-}
 
 function Detail({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
