@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/glass/GlassCard';
 import { AuroraStatic } from '@/components/bits/AuroraStatic';
@@ -12,13 +11,16 @@ import { AuroraStatic } from '@/components/bits/AuroraStatic';
  * não-tratado em Server Components / Client Components e renderiza isso
  * em vez de tela em branco.
  *
- * Recebe `error` (com `digest` em produção pra correlação com logs do
- * servidor) e `reset` (re-roda o render — útil pra erros transitórios
- * tipo network / Firestore intermitente).
+ * Recebe `error` (com `digest` em produção pra correlação com logs do servidor).
+ *
+ * Recuperação: NÃO usamos `reset()` (re-render do mesmo segmento), porque erros
+ * de rede/chunk costumam deixar o payload do router quebrado — o reset reexecuta
+ * o mesmo fetch falho e fica preso. Em vez disso, recarregamos a página por
+ * inteiro (hard reload) e voltamos ao início por navegação dura — ambos sempre
+ * recuperam quando a conexão volta.
  */
 export default function GlobalError({
   error,
-  reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
@@ -54,15 +56,20 @@ export default function GlobalError({
         )}
 
         <div className="mt-5 flex flex-col gap-2">
-          <Button size="touch" onClick={reset} className="w-full">
+          <Button size="touch" onClick={() => window.location.reload()} className="w-full">
             <RefreshCw aria-hidden="true" />
             Tentar de novo
           </Button>
-          <Button asChild variant="outline" size="touch" className="w-full">
-            <Link href="/">
-              <Home aria-hidden="true" />
-              Voltar ao início
-            </Link>
+          <Button
+            variant="outline"
+            size="touch"
+            className="w-full"
+            onClick={() => {
+              window.location.href = '/';
+            }}
+          >
+            <Home aria-hidden="true" />
+            Voltar ao início
           </Button>
         </div>
 
