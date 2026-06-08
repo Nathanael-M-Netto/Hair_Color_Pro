@@ -40,24 +40,43 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { verifySessionCookie } from '@/lib/firebase/admin';
 import { insertAnalysis, getProfile } from '@/lib/firestore';
-import { analyzeImageColor, type ImagePixels } from '@/lib/colorimetria/image-analysis';
+import {
+  analyzeImageColor,
+  type ImagePixels,
+  type ColorAnalysisResult,
+} from '@/lib/colorimetria/image-analysis';
+import { REFERENCE_PALETTE_BY_ID } from '@/lib/colorimetria/reference-palette';
 import { gerarRelatorio } from '@/lib/ai/report';
 
 // ============================================================================
 // Validação do payload
 // ============================================================================
 
-const requestSchema = z.object({
-  width: z.number().int().min(64).max(4096),
-  height: z.number().int().min(64).max(4096),
-  /**
-   * Base64 dos bytes RGBA contínuos. Encoding base64 é ~33% maior que binário
-   * mas evita configurar multipart parsing. Limite empirico: ~6MB de body
-   * (cabe imagem 1024×1024 RGBA = 4MB cru → 5.3MB base64).
-   */
-  pixelsBase64: z.string().min(100),
-  conciso: z.boolean().optional(),
-});
+const requestSchema = z
+  .object({
+    // ── Modo CÂMERA: pixels capturados pela foto ──────────────────────────
+    width: z.number().int().min(64).max(4096).optional(),
+    height: z.number().int().min(64).max(4096).optional(),
+    /**
+     * Base64 dos bytes RGBA contínuos. Encoding base64 é ~33% maior que binário
+     * mas evita configurar multipart parsing. Limite empirico: ~6MB de body
+     * (cabe imagem 1024×1024 RGBA = 4MB cru → 5.3MB base64).
+     */
+    pixelsBase64: z.string().min(100).optional(),
+    // ── Modo MANUAL: profissional informa o tom direto (sem foto) ─────────
+    // Útil quando não quer usar a câmera ou quando a câmera não está disponível.
+    manual: z
+      .object({
+        paletteEntryId: z.string().min(1),
+        subtom: z.enum(['frio', 'neutro', 'quente']).optional(),
+        brancosPct: z.number().int().min(0).max(100),
+      })
+      .optional(),
+    conciso: z.boolean().optional(),
+  })
+  .refine((d) => Boolean(d.manual) || Boolean(d.width && d.height && d.pixelsBase64), {
+    message: 'Informe os pixels da câmera OU uma entrada manual (manual.paletteEntryId).',
+  });
 
 // ============================================================================
 // Helper de auth
@@ -98,27 +117,59 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { width, height, pixelsBase64, conciso } = parsed.data;
+  const { conciso, manual } = parsed.data;
+  const origem: 'camera' | 'manual' = manual ? 'manual' : 'camera';
 
-  // 3. Decodifica os pixels
-  let pixels: ImagePixels;
-  try {
-    const buffer = Buffer.from(pixelsBase64, 'base64');
-    if (buffer.length !== width * height * 4) {
+  // 3 + 4. Obtém o diagnóstico — por entrada manual ou pela análise da foto.
+  let analysis: ColorAnalysisResult;
+
+  if (manual) {
+    // Modo MANUAL: o profissional escolheu o tom direto da paleta. Montamos o
+    // diagnóstico a partir da entrada de referência (ground-truth Lab), com
+    // confiança total (não há medição/estimativa envolvida).
+    const entry = REFERENCE_PALETTE_BY_ID.get(manual.paletteEntryId);
+    if (!entry) {
       return NextResponse.json(
-        {
-          error: `Tamanho dos pixels não bate: esperado ${width * height * 4} bytes (RGBA), recebido ${buffer.length}`,
-        },
+        { error: `Tom "${manual.paletteEntryId}" não existe na paleta de referência.` },
         { status: 422 },
       );
     }
-    pixels = { width, height, data: new Uint8ClampedArray(buffer) };
-  } catch {
-    return NextResponse.json({ error: 'Pixels base64 inválidos' }, { status: 422 });
-  }
+    analysis = {
+      paletteEntry: entry,
+      altura: entry.altura,
+      subtom: manual.subtom ?? entry.subtom,
+      labMedio: entry.lab,
+      brancosPct: manual.brancosPct,
+      confianca: 1,
+      deltaAoTomMaisProximo: 0,
+      pixelsAnalisados: 0,
+    };
+  } else {
+    // Modo CÂMERA: decodifica os pixels e roda a análise determinística.
+    // (o refine do schema garante que width/height/pixelsBase64 existem aqui)
+    const { width, height, pixelsBase64 } = parsed.data as {
+      width: number;
+      height: number;
+      pixelsBase64: string;
+    };
+    let pixels: ImagePixels;
+    try {
+      const buffer = Buffer.from(pixelsBase64, 'base64');
+      if (buffer.length !== width * height * 4) {
+        return NextResponse.json(
+          {
+            error: `Tamanho dos pixels não bate: esperado ${width * height * 4} bytes (RGBA), recebido ${buffer.length}`,
+          },
+          { status: 422 },
+        );
+      }
+      pixels = { width, height, data: new Uint8ClampedArray(buffer) };
+    } catch {
+      return NextResponse.json({ error: 'Pixels base64 inválidos' }, { status: 422 });
+    }
 
-  // 4. Análise determinística (sem IA — pura matemática)
-  const analysis = analyzeImageColor(pixels);
+    analysis = analyzeImageColor(pixels);
+  }
 
   // 5. Pega nome do cabeleireiro pro relatório (best-effort, não crítico)
   let nomeCabeleireiro: string | undefined;
@@ -129,11 +180,12 @@ export async function POST(request: NextRequest) {
     // Firestore indisponível — segue sem nome no relatório
   }
 
-  // 6. Relatório via Claude (com fallback template)
+  // 6. Relatório via Gemini (com fallback template)
   const report = await gerarRelatorio({
     analysis,
     nomeCabeleireiro,
     conciso: conciso ?? false,
+    origem,
   });
 
   // 7. Persiste no Firestore (no-op se desabilitado — resiliente).

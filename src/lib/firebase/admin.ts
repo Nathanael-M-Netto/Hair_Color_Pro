@@ -79,6 +79,10 @@ export async function createSessionCookie(idToken: string, expiresInMs: number) 
  */
 const sessionCache = new Map<string, { claims: Awaited<ReturnType<typeof verifyIdToken>>; expiresAt: number }>();
 const SESSION_CACHE_TTL_MS = 60 * 1000; // 60s
+// TTL menor para o caminho "degradado" (revogação não confirmada por falha de
+// rede). Mantém o usuário logado, mas força nova tentativa de checagem completa
+// em poucos segundos — evita confiar por muito tempo numa sessão não revalidada.
+const SESSION_CACHE_TTL_DEGRADED_MS = 15 * 1000; // 15s
 
 /** Hash simples (FNV-1a) — não precisa ser criptográfico, só evitar guardar a cookie inteira em mem */
 function hashCookie(s: string): string {
@@ -103,19 +107,41 @@ export async function verifySessionCookie(sessionCookie: string) {
     return cached.claims;
   }
 
-  try {
-    const auth = getAdminAuth(getAdminApp());
-    const claims = await auth.verifySessionCookie(sessionCookie, true);
-    sessionCache.set(key, { claims, expiresAt: now + SESSION_CACHE_TTL_MS });
-    // Limpa entradas antigas oportunisticamente — evita memory leak em long-runs
+  const auth = getAdminAuth(getAdminApp());
+
+  // Limpa entradas antigas oportunisticamente — evita memory leak em long-runs
+  const gc = () => {
     if (sessionCache.size > 100) {
       for (const [k, v] of sessionCache) {
         if (v.expiresAt <= now) sessionCache.delete(k);
       }
     }
+  };
+
+  try {
+    // Checagem completa (checkRevoked=true) faz uma chamada de rede ao Firebase
+    // para confirmar que a sessão não foi revogada.
+    const claims = await auth.verifySessionCookie(sessionCookie, true);
+    sessionCache.set(key, { claims, expiresAt: now + SESSION_CACHE_TTL_MS });
+    gc();
     return claims;
   } catch {
-    sessionCache.set(key, { claims: null, expiresAt: now + SESSION_CACHE_TTL_MS });
-    return null;
+    // A checagem com checkRevoked pode falhar por instabilidade de REDE — e não
+    // por a sessão ser inválida. Antes, isso deslogava o usuário (e cacheava o
+    // null por 60s, causando logouts em rajada ao navegar pelo app).
+    //
+    // Aqui revalidamos LOCALMENTE (checkRevoked=false, sem rede): isso confere
+    // assinatura e expiração da cookie. Se passar, confiamos na sessão e seguimos
+    // (TTL curto, pra reabrir a checagem completa logo). Só deslogamos de fato se
+    // a validação local também falhar — aí a cookie é realmente inválida/expirada.
+    try {
+      const claims = await auth.verifySessionCookie(sessionCookie, false);
+      sessionCache.set(key, { claims, expiresAt: now + SESSION_CACHE_TTL_DEGRADED_MS });
+      gc();
+      return claims;
+    } catch {
+      sessionCache.set(key, { claims: null, expiresAt: now + SESSION_CACHE_TTL_MS });
+      return null;
+    }
   }
 }

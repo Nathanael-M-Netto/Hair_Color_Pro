@@ -4,8 +4,8 @@
  * Pipeline:
  *   1. Recebe array de pixels RGB (canvas ou MediaPipe segmentation mask)
  *   2. Converte cada pixel para Lab via `rgbToLab`
- *   3. Separa pixels em "cabelo colorido" vs "branco/cinza" (chroma + L)
- *   4. Calcula Lab médio dos pixels coloridos
+ *   3. Separa pixels em "cabelo pigmentado" vs "branco/grisalho" (chroma + L)
+ *   4. Estima a base por MEDIANA dos pixels pigmentados (robusta a brancos/reflexos)
  *   5. Snap-to-palette: encontra a `PaletteEntry` com menor ΔE2000
  *   6. Detecta subtom via componentes a (frio/quente) e b (azul/amarelo)
  *   7. Devolve diagnóstico + confiança baseada na distância
@@ -80,10 +80,19 @@ export interface ColorAnalysisResult {
 const LIMITES = {
   /**
    * Pixels com L (luminosidade) acima disso E chroma abaixo de `BRANCO_CHROMA_MAX`
-   * são considerados "cabelo branco/grisalho". L=75 = cinza claro; cabelo natural
-   * raramente passa de L=78 sem clareamento químico.
+   * são considerados "cabelo branco/grisalho".
+   *
+   * BRANCO_L_MIN baixado de 70 → 62: em cabelo sal-e-pimenta, muitos fios
+   * grisalhos ficam na faixa L≈62-70. Com o limiar antigo (70) eles escapavam
+   * pra base e PUXAVAM a cor pra um cinza claro — origem do falso diagnóstico
+   * "loiro cinzento" em cabelo escuro com brancos. Cabelo natural pigmentado e
+   * quente tem chroma > 10, então o teto de chroma (10) protege loiros/castanhos
+   * de serem classificados como branco por engano.
+   *
+   * Importante: cinza ESCURO (L baixa + chroma baixa) NÃO é branco — é a base de
+   * cabelos pretos/escuros. Por isso exige-se L alta E chroma baixa juntas.
    */
-  BRANCO_L_MIN: 70,
+  BRANCO_L_MIN: 62,
   BRANCO_CHROMA_MAX: 10,
 
   /**
@@ -128,11 +137,15 @@ export function analyzeImageColor(
   const { width, height, data } = pixels;
   const totalPixels = width * height;
 
-  // Acumuladores
-  let coloridoL = 0;
-  let coloridoA = 0;
-  let coloridoB = 0;
-  let coloridoCount = 0;
+  // Pixels de cabelo PIGMENTADO (não-brancos): guardamos L,a,b para estimar a
+  // base por MEDIANA — não por média. Cabelo com brancos tem distribuição
+  // bimodal (fios escuros + fios grisalhos); a média de uma bimodal cai num
+  // cinza médio que não existe no cabelo real, gerando o falso "loiro cinzento"
+  // em cabelo escuro grisalho. A mediana é resistente tanto à mistura de
+  // brancos residuais quanto a reflexos/realces pontuais da foto.
+  const pigL: number[] = [];
+  const pigA: number[] = [];
+  const pigB: number[] = [];
   let brancoCount = 0;
   let candidatosCount = 0; // total de pixels que passaram pelo filtro de ruído
 
@@ -159,23 +172,28 @@ export function analyzeImageColor(
 
     candidatosCount++;
 
-    // Classifica como branco/grisalho (L alta + chroma baixa)
+    // Classifica como branco/grisalho (L alta + chroma baixa). Cinza escuro
+    // (L baixa) NÃO entra aqui — é base de cabelo escuro, fica nos pigmentados.
     if (lab.L >= LIMITES.BRANCO_L_MIN && C <= LIMITES.BRANCO_CHROMA_MAX) {
       brancoCount++;
       continue;
     }
 
-    // Senão, é cabelo colorido — acumula pra média
-    coloridoL += lab.L;
-    coloridoA += lab.a;
-    coloridoB += lab.b;
-    coloridoCount++;
+    // Senão, é cabelo pigmentado — guarda pra mediana
+    pigL.push(lab.L);
+    pigA.push(lab.a);
+    pigB.push(lab.b);
   }
 
-  // Edge case: nenhum pixel válido (imagem toda preta, transparente, etc.)
-  if (candidatosCount === 0 || coloridoCount === 0) {
-    // Retorna fallback "natural castanho médio" com confiança baixíssima.
-    // Não throw — UI mostra aviso e pede outra foto.
+  // % brancos é em cima do total que passou pelo filtro de ruído
+  // (não em cima do total de pixels — fundo da foto não conta)
+  const brancosPct =
+    candidatosCount > 0 ? Math.round((brancoCount / candidatosCount) * 100) : 0;
+
+  // Edge case 1: nenhum pixel válido (imagem toda preta, transparente, etc.)
+  if (candidatosCount === 0) {
+    // Fallback "natural castanho médio" com confiança zero. Não throw — a UI
+    // mostra aviso e pede outra foto.
     const fallback = REFERENCE_PALETTE.find((p) => p.id === '4.0')!;
     return {
       paletteEntry: fallback,
@@ -189,22 +207,37 @@ export function analyzeImageColor(
     };
   }
 
-  // Lab médio dos pixels coloridos
-  const labMedio: LabColor = {
-    L: coloridoL / coloridoCount,
-    a: coloridoA / coloridoCount,
-    b: coloridoB / coloridoCount,
+  // Edge case 2: cabelo predominantemente branco/grisalho — sem base pigmentada
+  // pra estimar. Em vez de fingir um castanho, reporta o tom acromático claro
+  // mais próximo e o alto % de brancos (honesto pro profissional).
+  if (pigL.length === 0) {
+    const baseBranca: LabColor = { L: 80, a: 0, b: 4 };
+    const closestBranco = findClosestPaletteEntry(baseBranca);
+    return {
+      paletteEntry: closestBranco.entry,
+      altura: closestBranco.entry.altura,
+      subtom: classificarSubtom(baseBranca),
+      labMedio: baseBranca,
+      brancosPct,
+      confianca: computarConfianca(closestBranco.deltaE),
+      deltaAoTomMaisProximo: closestBranco.deltaE,
+      pixelsAnalisados: candidatosCount,
+    };
+  }
+
+  // Base de cor = mediana componente-a-componente dos pixels pigmentados.
+  // Robusta: ignora a influência de brancos residuais e de reflexos.
+  const labBase: LabColor = {
+    L: mediana(pigL),
+    a: mediana(pigA),
+    b: mediana(pigB),
   };
 
   // Snap-to-palette: menor ΔE2000 contra todas as entradas
-  const closest = findClosestPaletteEntry(labMedio);
+  const closest = findClosestPaletteEntry(labBase);
 
-  // % brancos é em cima do total que passou pelo filtro de ruído
-  // (não em cima do total de pixels — fundo da foto não conta)
-  const brancosPct = Math.round((brancoCount / candidatosCount) * 100);
-
-  // Classificação de subtom via componente `a` do Lab médio
-  const subtom = classificarSubtom(labMedio);
+  // Classificação de subtom via componente `a` da base
+  const subtom = classificarSubtom(labBase);
 
   // Confiança decai com a distância ao tom mais próximo
   const confianca = computarConfianca(closest.deltaE);
@@ -213,7 +246,7 @@ export function analyzeImageColor(
     paletteEntry: closest.entry,
     altura: closest.entry.altura,
     subtom,
-    labMedio,
+    labMedio: labBase,
     brancosPct,
     confianca,
     deltaAoTomMaisProximo: closest.deltaE,
@@ -224,6 +257,20 @@ export function analyzeImageColor(
 // ============================================================================
 // Helpers — exportados pra testes / uso isolado
 // ============================================================================
+
+/**
+ * Mediana de um array numérico. Ordena uma cópia (não muta o original) e
+ * devolve o elemento central — ou a média dos dois centrais quando o tamanho
+ * é par. É a base estatística do diagnóstico: resistente a outliers (reflexos,
+ * realces) e à mistura de fios brancos, ao contrário da média aritmética.
+ */
+export function mediana(valores: number[]): number {
+  const n = valores.length;
+  if (n === 0) return 0;
+  const ordenado = [...valores].sort((x, y) => x - y);
+  const meio = n >> 1;
+  return n % 2 === 0 ? (ordenado[meio - 1]! + ordenado[meio]!) / 2 : ordenado[meio]!;
+}
 
 /**
  * Encontra a entrada da paleta com menor ΔE2000 ao Lab fornecido.

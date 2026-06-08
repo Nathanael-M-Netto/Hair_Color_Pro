@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import { ServiceWorkerRegister } from '@/components/app/ServiceWorkerRegister';
+import { OfflineBanner } from '@/components/app/OfflineBanner';
 import { InstallHintLazy } from '@/components/app/InstallHintLazy';
 import { ThemeProvider } from '@/components/app/ThemeProvider';
 import './globals.css';
@@ -171,6 +172,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         {children}
+        {/* Banner persistente quando sem internet — deixa claro o que dá pra fazer offline */}
+        <OfflineBanner />
         <Toaster />
         {/* Banner flutuante de instalação — lazy-loaded, não bloqueia first paint */}
         <InstallHintLazy />

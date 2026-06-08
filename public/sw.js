@@ -16,18 +16,29 @@
 
 // Versão do cache — incrementar quando a estrutura do app mudar.
 // SW antigos com cache desatualizado são limpos no `activate`.
-const CACHE_VERSION = 'hcp-v3';
+const CACHE_VERSION = 'hcp-v4';
 const APP_SHELL = ['/', '/auth/login', '/auth/register', '/icon-192.png', '/icon-512.png'];
 
 // ── Instalação: pré-cacheia o shell mínimo ──────────────────────────────────
+// NÃO chamamos skipWaiting() aqui de propósito: quando há uma versão nova, o
+// novo SW fica em "waiting" até o usuário confirmar a atualização (toast no
+// client → mensagem SKIP_WAITING). Isso evita recarregar a página sem aviso no
+// meio de um uso. No primeiro install (sem SW ativo) ele ativa normalmente.
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
       // .catch silencioso: se um asset falhar, não queremos abortar a instalação
       .then((cache) => Promise.all(APP_SHELL.map((url) => cache.add(url).catch(() => {})))),
   );
+});
+
+// ── Atualização sob demanda: o client pede pra ativar a versão que está
+//    esperando (disparado pelo toast "Nova versão disponível"). ──────────────
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // ── Ativação: limpa caches antigos ──────────────────────────────────────────

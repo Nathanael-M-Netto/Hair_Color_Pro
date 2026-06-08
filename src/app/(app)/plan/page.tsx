@@ -116,18 +116,18 @@ export default function PlanPage() {
         <GlassCard padding="lg" className="mb-4">
           <div className="flex items-center justify-between gap-3">
             {/* Tom atual */}
-            <div className="flex flex-1 flex-col items-center text-center">
+            <div className="flex min-w-0 flex-1 flex-col items-center text-center">
               <div
-                className="h-16 w-16 rounded-2xl border border-border shadow-md"
+                className="h-16 w-16 shrink-0 rounded-2xl border border-border shadow-md"
                 style={{ backgroundColor: plan.baseHex }}
               />
               <p className="mt-2 font-mono text-[10px] text-muted-foreground">Atual</p>
-              <p className="truncate text-xs font-medium">{plan.baseNome}</p>
+              <p className="w-full truncate text-xs font-medium">{plan.baseNome}</p>
               <p className="font-mono text-[10px] text-primary">{plan.baseId}</p>
             </div>
 
             {/* Seta */}
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex shrink-0 flex-col items-center gap-1">
               <ArrowRight className="h-5 w-5 text-primary" aria-hidden="true" />
               <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
                 {direcaoLabel.split(' ')[0]}
@@ -135,13 +135,13 @@ export default function PlanPage() {
             </div>
 
             {/* Tom desejado */}
-            <div className="flex flex-1 flex-col items-center text-center">
+            <div className="flex min-w-0 flex-1 flex-col items-center text-center">
               <div
-                className="h-16 w-16 rounded-2xl border border-primary/40 shadow-lg shadow-primary/20"
+                className="h-16 w-16 shrink-0 rounded-2xl border border-primary/40 shadow-lg shadow-primary/20"
                 style={{ backgroundColor: plan.targetHex }}
               />
               <p className="mt-2 font-mono text-[10px] text-muted-foreground">Desejado</p>
-              <p className="truncate text-xs font-medium">{plan.targetNome}</p>
+              <p className="w-full truncate text-xs font-medium">{plan.targetNome}</p>
               <p className="font-mono text-[10px] text-primary">{plan.targetId}</p>
             </div>
           </div>

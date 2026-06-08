@@ -39,6 +39,13 @@ export interface ReportOptions {
   nomeCabeleireiro?: string;
   /** Se true, retorna versão concisa (~120 palavras). Se false, versão completa (~250). */
   conciso?: boolean;
+  /**
+   * Origem do diagnóstico:
+   *   - 'camera' (padrão): tom medido pela foto (análise determinística).
+   *   - 'manual': tom informado diretamente pelo profissional (sem foto). O
+   *     relatório trata como base confirmada, sem falar em medição/confiança.
+   */
+  origem?: 'camera' | 'manual';
 }
 
 export interface ReportResult {
@@ -108,25 +115,44 @@ function buildSystemPrompt(): string {
  */
 function buildUserPrompt(opts: ReportOptions): string {
   const { analysis, nomeCabeleireiro, conciso } = opts;
+  const origem = opts.origem ?? 'camera';
   const conf = (analysis.confianca * 100).toFixed(0);
 
   const cabec = nomeCabeleireiro ? `Cabeleireiro(a): ${nomeCabeleireiro}.\n\n` : '';
 
   const tamanho = conciso ? '~120 palavras' : '~250 palavras';
 
-  return [
-    cabec + 'Análise determinística da foto capilar:',
+  const linhas = [
+    cabec +
+      (origem === 'manual'
+        ? 'Tom base informado MANUALMENTE pelo profissional (não medido por foto):'
+        : 'Análise determinística da foto capilar:'),
     '',
-    `• Tom detectado: ${analysis.paletteEntry.nome} (código ${analysis.paletteEntry.id})`,
+    `• Tom: ${analysis.paletteEntry.nome} (código ${analysis.paletteEntry.id})`,
     `• Altura de tom: ${analysis.altura} numa escala 1-12`,
     `• Subtom: ${analysis.subtom}`,
     `• Cabelos brancos: ${analysis.brancosPct}%`,
-    `• Confiança do algoritmo: ${conf}% (ΔE2000 = ${analysis.deltaAoTomMaisProximo.toFixed(2)})`,
-    `• Coordenadas Lab médias: L=${analysis.labMedio.L.toFixed(1)}, a=${analysis.labMedio.a.toFixed(1)}, b=${analysis.labMedio.b.toFixed(1)}`,
-    `• Pixels válidos analisados: ${analysis.pixelsAnalisados}`,
+  ];
+
+  if (origem === 'manual') {
+    linhas.push(
+      '• Origem: ENTRADA MANUAL confirmada pelo profissional — trate como base certa,',
+      '  NÃO mencione confiança, ΔE, pixels nem "refazer a foto".',
+    );
+  } else {
+    linhas.push(
+      `• Confiança do algoritmo: ${conf}% (ΔE2000 = ${analysis.deltaAoTomMaisProximo.toFixed(2)})`,
+      `• Coordenadas Lab médias: L=${analysis.labMedio.L.toFixed(1)}, a=${analysis.labMedio.a.toFixed(1)}, b=${analysis.labMedio.b.toFixed(1)}`,
+      `• Pixels válidos analisados: ${analysis.pixelsAnalisados}`,
+    );
+  }
+
+  linhas.push(
     '',
     `Gere o relatório (${tamanho}, 3 parágrafos curtos) seguindo a estrutura definida.`,
-  ].join('\n');
+  );
+
+  return linhas.join('\n');
 }
 
 // ============================================================================
@@ -415,6 +441,7 @@ export function gerarRelatorioPlanoFallback(opts: PlanReportOptions): ReportResu
  */
 export function gerarRelatorioFallback(opts: ReportOptions): ReportResult {
   const { analysis, nomeCabeleireiro } = opts;
+  const origem = opts.origem ?? 'camera';
   const conf = Math.round(analysis.confianca * 100);
   const olá = nomeCabeleireiro ? `${nomeCabeleireiro}, ` : '';
 
@@ -427,22 +454,31 @@ export function gerarRelatorioFallback(opts: ReportOptions): ReportResult {
 
   const brancosTexto =
     analysis.brancosPct === 0
-      ? 'Não foi detectada presença significativa de fios brancos.'
+      ? 'Não foi informada presença significativa de fios brancos.'
       : analysis.brancosPct < 30
         ? `Presença discreta de brancos (${analysis.brancosPct}%) — fácil cobertura sem necessidade de pré-pigmentação.`
         : analysis.brancosPct < 70
           ? `Presença moderada de brancos (${analysis.brancosPct}%) — recomendado mix com tom natural pra cobertura uniforme.`
           : `Alta concentração de brancos (${analysis.brancosPct}%) — exigirá pré-pigmentação ou tonalizante específico.`;
 
+  // Abertura e aviso dependem da ORIGEM: na entrada manual não falamos de
+  // confiança/medição (não houve foto), só confirmamos a base informada.
+  const abertura =
+    origem === 'manual'
+      ? `${olá}o tom base informado foi ${analysis.paletteEntry.nome} (altura ${analysis.altura}, código ${analysis.paletteEntry.id}), com ${subtomTexto}.`
+      : `${olá}o cabelo analisado foi identificado como ${analysis.paletteEntry.nome} (altura ${analysis.altura}, código ${analysis.paletteEntry.id}), com ${subtomTexto}. A confiança do algoritmo é de ${conf}%.`;
+
   const aviso =
-    conf < 50
-      ? 'Atenção: a confiança da análise está baixa. Recomendo refazer a foto com luz natural mais difusa e o cabelo bem distribuído no enquadramento.'
-      : conf < 75
-        ? 'A confiança é razoável mas pode melhorar. Se possível, refaça a foto em melhor iluminação pra um diagnóstico mais preciso.'
-        : 'A análise tem alta confiança — pode prosseguir com a formulação.';
+    origem === 'manual'
+      ? 'Tom base confirmado manualmente pelo profissional — pode prosseguir direto pra formulação.'
+      : conf < 50
+        ? 'Atenção: a confiança da análise está baixa. Recomendo refazer a foto com luz natural mais difusa e o cabelo bem distribuído no enquadramento.'
+        : conf < 75
+          ? 'A confiança é razoável mas pode melhorar. Se possível, refaça a foto em melhor iluminação pra um diagnóstico mais preciso.'
+          : 'A análise tem alta confiança — pode prosseguir com a formulação.';
 
   const texto = [
-    `${olá}o cabelo analisado foi identificado como ${analysis.paletteEntry.nome} (altura ${analysis.altura}, código ${analysis.paletteEntry.id}), com ${subtomTexto}. A confiança do algoritmo é de ${conf}%.`,
+    abertura,
     '',
     `${brancosTexto} Na prática, isso significa que partimos de uma base ${analysis.altura}.${analysis.paletteEntry.reflexo_primario ?? 0} pra calcular qualquer transformação — clarear, escurecer ou aplicar reflexo. O subtom ${analysis.subtom} influencia diretamente qual reflexo combina com a pele do cliente.`,
     '',

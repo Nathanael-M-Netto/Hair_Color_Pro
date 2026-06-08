@@ -6,6 +6,7 @@ import { Camera, Sparkles, AlertCircle, Loader2, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner';
 import { useCamera, type CapturedPixels } from '@/hooks/use-camera';
 import { Button } from '@/components/ui/button';
+import { ManualEntry } from '@/components/app/ManualEntry';
 
 /**
  * Componente cliente que orquestra:
@@ -309,6 +310,10 @@ export function CameraCapture({ chipsSlot }: CameraCaptureProps = {}) {
             )}
           </Button>
         )}
+
+        {/* Alternativa sempre disponível à câmera — inclusive se a permissão
+            for negada. O profissional informa o tom direto da paleta. */}
+        {!analyzing && <ManualEntry />}
       </div>
     </>
   );
