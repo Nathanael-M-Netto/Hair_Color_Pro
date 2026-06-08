@@ -53,13 +53,51 @@ const SUBTONS: Array<{ key: Subtom; label: string }> = [
   { key: 'quente', label: 'Quente' },
 ];
 
-export function ManualEntry() {
+interface ManualEntryProps {
+  /** Valores iniciais — no modo "ajustar", pré-preenche com o diagnóstico atual. */
+  initial?: { paletteEntryId?: string | null; subtom?: Subtom; brancosPct?: number };
+  /** Texto do botão que abre o modal. */
+  label?: string;
+  /** Variante do botão gatilho. */
+  triggerVariant?: 'ghost' | 'outline';
+  /** Título e descrição do modal. */
+  title?: string;
+  description?: string;
+  /** Texto do botão de confirmação. */
+  submitLabel?: string;
+  /**
+   * Se fornecido, recebe o resultado em vez de navegar para /result. Usado no
+   * modo "ajustar", quando já estamos na própria tela de resultado.
+   */
+  onResult?: (result: unknown) => void;
+}
+
+export function ManualEntry({
+  initial,
+  label = 'Inserir tom manualmente',
+  triggerVariant = 'ghost',
+  title = 'Inserir tom manualmente',
+  description = 'Escolha a base atual do cabelo. Útil quando você não quer usar a câmera.',
+  submitLabel = 'Gerar diagnóstico',
+  onResult,
+}: ManualEntryProps = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [subtom, setSubtom] = useState<Subtom>('neutro');
-  const [brancos, setBrancos] = useState(0);
+  const [selectedId, setSelectedId] = useState<string | null>(initial?.paletteEntryId ?? null);
+  const [subtom, setSubtom] = useState<Subtom>(initial?.subtom ?? 'neutro');
+  const [brancos, setBrancos] = useState(initial?.brancosPct ?? 0);
   const [submitting, setSubmitting] = useState(false);
+
+  // Ao abrir, sincroniza com os valores atuais (no modo "ajustar", o initial é
+  // atualizado a cada correção; sem isso, reabrir mostraria valores antigos).
+  function handleOpenChange(next: boolean) {
+    if (next) {
+      setSelectedId(initial?.paletteEntryId ?? null);
+      setSubtom(initial?.subtom ?? 'neutro');
+      setBrancos(initial?.brancosPct ?? 0);
+    }
+    setOpen(next);
+  }
 
   const grouped = useMemo(() => {
     const map = new Map<CategoriaPaleta, PaletteEntry[]>();
@@ -103,7 +141,8 @@ export function ManualEntry() {
       const result = await res.json();
       sessionStorage.setItem('last-analysis', JSON.stringify(result));
       setOpen(false);
-      router.push('/result');
+      if (onResult) onResult(result);
+      else router.push('/result');
     } catch (err) {
       toast.error((err as Error).message || 'Erro ao gerar diagnóstico. Tente novamente.');
     } finally {
@@ -112,20 +151,22 @@ export function ManualEntry() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="touch" variant="ghost" className="w-full max-w-sm text-muted-foreground">
+        <Button
+          size="touch"
+          variant={triggerVariant}
+          className={triggerVariant === 'ghost' ? 'w-full max-w-sm text-muted-foreground' : 'w-full'}
+        >
           <Pencil className="h-4 w-4" aria-hidden="true" />
-          Inserir tom manualmente
+          {label}
         </Button>
       </DialogTrigger>
 
       <DialogContent className="flex h-[88dvh] max-h-[88dvh] max-w-md flex-col gap-0 p-0">
         <DialogHeader className="border-b border-border/60 px-5 pt-5 pb-3">
-          <DialogTitle className="text-base">Inserir tom manualmente</DialogTitle>
-          <DialogDescription className="text-xs">
-            Escolha a base atual do cabelo. Útil quando você não quer usar a câmera.
-          </DialogDescription>
+          <DialogTitle className="text-base">{title}</DialogTitle>
+          <DialogDescription className="text-xs">{description}</DialogDescription>
         </DialogHeader>
 
         {/* Paleta rolante */}
@@ -231,7 +272,7 @@ export function ManualEntry() {
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                Gerar diagnóstico
+                {submitLabel}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}

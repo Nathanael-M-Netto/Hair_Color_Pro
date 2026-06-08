@@ -9,6 +9,7 @@ import { GlassCard } from '@/components/glass/GlassCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TargetTonePicker } from '@/components/app/TargetTonePicker';
+import { ManualEntry } from '@/components/app/ManualEntry';
 import {
   MetricInfo,
   POPOVER_BRANCOS,
@@ -137,14 +138,20 @@ export default function ResultPage() {
     );
   }
 
-  return <ResultView data={data} />;
+  return <ResultView data={data} onAdjusted={setData} />;
 }
 
 // ============================================================================
 // View principal — renderização do resultado
 // ============================================================================
 
-function ResultView({ data }: { data: ResultData }) {
+function ResultView({
+  data,
+  onAdjusted,
+}: {
+  data: ResultData;
+  onAdjusted: (r: ResultData) => void;
+}) {
   const { analysis, report } = data;
   const confPct = Math.round(analysis.confianca * 100);
 
@@ -213,6 +220,29 @@ function ResultView({ data }: { data: ResultData }) {
               severity={confPct < 50 ? 'critico' : confPct < 75 ? 'atencao' : 'ok'}
               popoverTitle={POPOVER_CONFIANCA.title}
               popoverContent={POPOVER_CONFIANCA.content}
+            />
+          </div>
+
+          {/* Ajuste manual — a detecção é um ponto de partida; o profissional
+              confere e corrige tom, subtom ou % de brancos quando necessário. */}
+          <div className="mt-4">
+            {confPct < 60 && (
+              <p className="mb-2 text-center text-[11px] text-warning">
+                Confiança baixa — confira e ajuste o diagnóstico se necessário.
+              </p>
+            )}
+            <ManualEntry
+              initial={{
+                paletteEntryId: analysis.paletteEntryId,
+                subtom: analysis.subtom,
+                brancosPct: analysis.brancosPct,
+              }}
+              label="Ajustar diagnóstico"
+              triggerVariant="outline"
+              title="Ajustar diagnóstico"
+              description="Corrija o tom, o subtom ou o percentual de brancos detectados."
+              submitLabel="Salvar correção"
+              onResult={(r) => onAdjusted(r as ResultData)}
             />
           </div>
         </GlassCard>

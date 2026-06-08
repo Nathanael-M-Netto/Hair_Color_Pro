@@ -258,7 +258,7 @@ function derivarAvisos(
     avisos.push({
       severidade: 'critico',
       codigo: 'CLAREAMENTO_EXTREMO',
-      mensagem: `Salto de ${deltaAltura} níveis exige descoloração antes do tom. Tintura comum não atinge esse clareamento. Considere encaminhar pra profissional experiente — risco de quebra capilar.`,
+      mensagem: `Salto de ${deltaAltura} níveis exige descoloração prévia controlada — tintura comum não atinge esse clareamento. Avalie a integridade do fio e faça um teste de mecha antes de aplicar; há risco de quebra capilar.`,
     });
   }
 

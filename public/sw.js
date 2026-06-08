@@ -16,7 +16,7 @@
 
 // Versão do cache — incrementar quando a estrutura do app mudar.
 // SW antigos com cache desatualizado são limpos no `activate`.
-const CACHE_VERSION = 'hcp-v5';
+const CACHE_VERSION = 'hcp-v6';
 const APP_SHELL = ['/', '/auth/login', '/auth/register', '/icon-192.png', '/icon-512.png'];
 
 // ── Instalação: pré-cacheia o shell mínimo ──────────────────────────────────
