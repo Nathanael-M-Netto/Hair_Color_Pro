@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
  * Como funciona:
  *   1. Usuário tá em /result vendo o tom ATUAL detectado.
  *   2. Clica em "Definir tom desejado" → abre este modal.
- *   3. Modal mostra paleta (120 tons) agrupada por categoria (Naturais, Loiros,
+ *   3. Modal mostra paleta (66 tons) agrupada por categoria (Naturais, Loiros,
  *      Ruivos, Mogno, Vermelhos, Matte, Pérola, Fundamentais).
  *   4. Usuário seleciona um tom → bota "Gerar plano".
  *   5. POST /api/plan com basePaletteId (atual) + targetPaletteId (escolhido).

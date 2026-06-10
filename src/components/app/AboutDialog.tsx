@@ -81,7 +81,7 @@ export function AboutDialog() {
               <Step
                 Icon={Palette}
                 title="2. Diagnóstico"
-                desc="Um algoritmo determinístico converte os pixels para o espaço Lab (CIE) e compara com uma paleta de ~120 tons profissionais via métrica ΔE2000 — mesma técnica usada em colorímetros industriais."
+                desc="Um algoritmo determinístico converte os pixels para o espaço Lab (CIE) e compara com uma paleta de 66 tons profissionais via métrica ΔE2000 — mesma técnica usada em colorímetros industriais."
               />
               <Step
                 Icon={Sparkles}
