@@ -16,7 +16,10 @@
  *   - **Qualidade adequada em PT-BR**: testado em texto curto técnico
  *   - **Sem necessidade de SDK pesada**: usamos fetch REST direto
  *
- * Modelo: configurável via env `GEMINI_MODEL`. Default `gemini-2.5-flash-lite`.
+ * Modelos: cadeia com fallback automático — se um modelo atinge o limite da
+ * faixa gratuita (cota é POR modelo), o próximo da cadeia assume. Configurável
+ * via env `GEMINI_MODELS` (lista) ou `GEMINI_MODEL` (único). Default:
+ * gemini-2.5-flash-lite → gemini-2.5-flash → gemini-2.0-flash.
  *
  * Por que esse split é importante (pro TG):
  *   - Determinismo: mesma foto → mesmo número → variação só no texto
@@ -61,14 +64,29 @@ export interface ReportResult {
 // Configuração — endpoint REST do Gemini
 // ============================================================================
 
-const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
+/**
+ * Cadeia de modelos — resiliência ao limite da faixa gratuita.
+ *
+ * A cota gratuita do Google AI Studio é POR MODELO. Se o modelo principal
+ * atingir o limite diário (HTTP 429) ou ficar indisponível, tentamos o próximo
+ * da cadeia — que tem cota própria — antes de cair no template offline.
+ * O primeiro da lista é o preferido; os demais são reservas.
+ *
+ * Configurável via env `GEMINI_MODELS` (lista separada por vírgula) ou
+ * `GEMINI_MODEL` (modelo único; a cadeia padrão entra como reserva).
+ */
+const DEFAULT_MODEL_CHAIN = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash'];
 
 function getApiKey(): string | null {
   return process.env.GEMINI_API_KEY ?? null;
 }
 
-function getModelName(): string {
-  return process.env.GEMINI_MODEL ?? DEFAULT_MODEL;
+function getModelChain(): string[] {
+  const env = process.env.GEMINI_MODELS ?? process.env.GEMINI_MODEL;
+  if (!env) return DEFAULT_MODEL_CHAIN;
+  const escolhidos = env.split(',').map((m) => m.trim()).filter(Boolean);
+  // Dedupe preservando a ordem: escolhidos primeiro, cadeia padrão como reserva
+  return [...new Set([...escolhidos, ...DEFAULT_MODEL_CHAIN])];
 }
 
 // ============================================================================
@@ -180,73 +198,97 @@ interface GeminiResponse {
 // ============================================================================
 
 /**
+ * Chama o Gemini percorrendo a cadeia de modelos.
+ *
+ * Política por tipo de falha:
+ *   - HTTP não-ok (429 cota esgotada, 404 modelo, 5xx) → tenta o PRÓXIMO modelo
+ *     (a cota gratuita é por modelo — o próximo tem cota própria);
+ *   - Timeout/erro de rede → aborta a cadeia (os demais falhariam igual);
+ *   - Resposta vazia ou com erro no corpo → tenta o próximo modelo.
+ *
+ * Timeout de 8s por tentativa: com 3 modelos, pior caso ~24s — dentro do
+ * maxDuration de 30s da rota /api/analyze.
+ *
+ * Retorna null quando nenhum modelo respondeu — o caller usa o template offline.
+ */
+async function chamarGemini(req: {
+  systemPrompt: string;
+  userPrompt: string;
+  maxOutputTokens: number;
+}): Promise<ReportResult | null> {
+  const apiKey = getApiKey();
+  if (!apiKey) return null;
+
+  for (const model of getModelChain()) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    try {
+      const res = await fetch(`${url}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: req.systemPrompt }] },
+          contents: [{ role: 'user', parts: [{ text: req.userPrompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: req.maxOutputTokens,
+            topP: 0.95,
+          },
+        }),
+        // Timeout via AbortSignal (Node 20+ tem timeout nativo via undici)
+        signal: AbortSignal.timeout(8_000),
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.text().catch(() => '');
+        console.warn(
+          `[ai/report] ${model} retornou HTTP ${res.status} — tentando próximo modelo da cadeia. Body: ${errorBody.slice(0, 300)}`,
+        );
+        continue;
+      }
+
+      const data = (await res.json()) as GeminiResponse;
+      if (data.error) {
+        console.warn(`[ai/report] ${model} retornou erro no corpo — tentando próximo modelo:`, data.error);
+        continue;
+      }
+
+      const texto = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+      if (!texto) {
+        console.warn(`[ai/report] ${model} retornou texto vazio — tentando próximo modelo.`);
+        continue;
+      }
+
+      return {
+        texto,
+        modelo: data.modelVersion ?? model,
+        tokensConsumidos: data.usageMetadata?.totalTokenCount ?? 0,
+      };
+    } catch (err) {
+      // Timeout/rede: os outros modelos falhariam do mesmo jeito — aborta a cadeia.
+      console.error(`[ai/report] falha de rede/timeout em ${model} — usando template offline:`, err);
+      return null;
+    }
+  }
+
+  console.warn('[ai/report] cadeia de modelos esgotada — usando template offline.');
+  return null;
+}
+
+/**
  * Gera o relatório textual da análise via Google Gemini.
  *
- * Falha graciosamente: se a API falhar (sem key, rate limit, network), devolve
- * um relatório padrão gerado por template (sem IA). UX continua, sem crash.
+ * Falha graciosamente em dois níveis: se um modelo atingir o limite da faixa
+ * gratuita, a cadeia troca para um modelo alternativo; se nenhum responder
+ * (sem key, sem rede), devolve um relatório por template (sem IA). UX continua.
  */
 export async function gerarRelatorio(opts: ReportOptions): Promise<ReportResult> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    return gerarRelatorioFallback(opts);
-  }
-
-  const model = getModelName();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-
-  try {
-    const res = await fetch(`${url}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildSystemPrompt() }] },
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: buildUserPrompt(opts) }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          // ~120 palavras ≈ 200 tokens; ~250 ≈ 400. Damos margem.
-          maxOutputTokens: opts.conciso ? 400 : 800,
-          topP: 0.95,
-        },
-      }),
-      // Timeout via AbortSignal (Node 20+ tem timeout nativo via undici)
-      signal: AbortSignal.timeout(15_000),
-    });
-
-    if (!res.ok) {
-      const errorBody = await res.text().catch(() => '');
-      console.error(
-        `[ai/report] Gemini retornou ${res.status} (${res.statusText}). Body: ${errorBody.slice(0, 500)}`,
-      );
-      return gerarRelatorioFallback(opts);
-    }
-
-    const data = (await res.json()) as GeminiResponse;
-
-    if (data.error) {
-      console.error('[ai/report] Gemini retornou erro:', data.error);
-      return gerarRelatorioFallback(opts);
-    }
-
-    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
-    if (!texto) {
-      console.warn('[ai/report] Gemini retornou texto vazio, usando fallback.');
-      return gerarRelatorioFallback(opts);
-    }
-
-    return {
-      texto,
-      modelo: data.modelVersion ?? model,
-      tokensConsumidos: data.usageMetadata?.totalTokenCount ?? 0,
-    };
-  } catch (err) {
-    console.error('[ai/report] erro Gemini, usando fallback:', err);
-    return gerarRelatorioFallback(opts);
-  }
+  const resultado = await chamarGemini({
+    systemPrompt: buildSystemPrompt(),
+    userPrompt: buildUserPrompt(opts),
+    // ~120 palavras ≈ 200 tokens; ~250 ≈ 400. Damos margem.
+    maxOutputTokens: opts.conciso ? 400 : 800,
+  });
+  return resultado ?? gerarRelatorioFallback(opts);
 }
 
 // ============================================================================
@@ -334,51 +376,12 @@ function buildPlanUserPrompt(opts: PlanReportOptions): string {
  * Fallback offline com template determinístico se a API falhar.
  */
 export async function gerarRelatorioPlano(opts: PlanReportOptions): Promise<ReportResult> {
-  const apiKey = getApiKey();
-  if (!apiKey) return gerarRelatorioPlanoFallback(opts);
-
-  const model = getModelName();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-
-  try {
-    const res = await fetch(`${url}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildPlanSystemPrompt() }] },
-        contents: [{ role: 'user', parts: [{ text: buildPlanUserPrompt(opts) }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 800,
-          topP: 0.95,
-        },
-      }),
-      signal: AbortSignal.timeout(15_000),
-    });
-
-    if (!res.ok) {
-      console.error(`[ai/report] Gemini plano retornou ${res.status}.`);
-      return gerarRelatorioPlanoFallback(opts);
-    }
-
-    const data = (await res.json()) as GeminiResponse;
-    if (data.error) {
-      console.error('[ai/report] Gemini plano error:', data.error);
-      return gerarRelatorioPlanoFallback(opts);
-    }
-
-    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
-    if (!texto) return gerarRelatorioPlanoFallback(opts);
-
-    return {
-      texto,
-      modelo: data.modelVersion ?? model,
-      tokensConsumidos: data.usageMetadata?.totalTokenCount ?? 0,
-    };
-  } catch (err) {
-    console.error('[ai/report] erro Gemini plano:', err);
-    return gerarRelatorioPlanoFallback(opts);
-  }
+  const resultado = await chamarGemini({
+    systemPrompt: buildPlanSystemPrompt(),
+    userPrompt: buildPlanUserPrompt(opts),
+    maxOutputTokens: 800,
+  });
+  return resultado ?? gerarRelatorioPlanoFallback(opts);
 }
 
 /** Relatório do plano por template — fallback determinístico sem IA. */
